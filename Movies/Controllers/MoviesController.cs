@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Movies.Dtos;
 
@@ -31,36 +32,41 @@ public class MoviesController : ControllerBase
         }
     };
 
-    private readonly ILogger<MoviesController> _logger;
-
-    public MoviesController(ILogger<MoviesController> logger)
+    public MoviesController()
     {
-        _logger = logger;
+
     }
 
     [HttpGet]
-    public List<Movie> Get()
+    public IActionResult Get()
     {
-        var movieList = MovieList.OrderBy(x=>x.Id).ToList<Movie>();
-        return movieList;
+        return Ok(MovieList);
     }
 
     [HttpGet("{id}")]
-    public Movie GetById(int id)
+    public IActionResult GetById(int id)
     {
         var movie = MovieList.FirstOrDefault(x=>x.Id == id);
-        return movie;
+        if(movie == null)
+        {
+            return NotFound();
+        }
+        return Ok(movie);
     }
 
     [HttpGet("GetByIdQuery")]
-    public Movie GetByIdQuery([FromQuery] int id)
+    public IActionResult GetByIdQuery([FromQuery] int id)
     {
         var movie = MovieList.FirstOrDefault(x=>x.Id == id);
-        return movie;
+        if(movie == null)
+        {
+            return NotFound();
+        }
+        return Ok(movie);
     }
 
     [HttpGet("GetByParameter")]
-    public List<Movie> GetByParameter([FromQuery] string? Title, [FromQuery] string? Language)
+    public IActionResult GetByParameter([FromQuery] string? Title, [FromQuery] string? Language)
     {
         var movies = MovieList.AsQueryable();
         if(!string.IsNullOrEmpty(Title)){
@@ -69,7 +75,7 @@ public class MoviesController : ControllerBase
         if(!string.IsNullOrEmpty(Language)){
             movies = movies.Where(x => x.Language.Contains(Language, StringComparison.OrdinalIgnoreCase));
         }
-        return movies.ToList<Movie>();
+        return Ok( movies.ToList<Movie>());
     }
 
     [HttpPost]
@@ -104,6 +110,28 @@ public class MoviesController : ControllerBase
         }
         MovieList.Remove(movieCheck);
         return Ok();
+    }
+
+    [HttpGet]
+    [Route("SortBy")]
+    public IActionResult SortBy([FromQuery] string sorting)
+    {
+        var movie = MovieList.AsQueryable();
+
+        if (!string.IsNullOrEmpty(sorting) && sorting.ToUpper(CultureInfo.InvariantCulture)== "TITLE")
+        {
+            movie = movie.OrderBy(x => x.Title);
+        }
+        
+        else if (!string.IsNullOrEmpty(sorting) && sorting.ToUpper(CultureInfo.InvariantCulture) == "LANGUAGE")
+        {
+            movie = movie.OrderBy(x => x.Language);
+        }
+
+        else{
+            return BadRequest();
+        }
+        return Ok(movie.ToList());
     }
     
 }
